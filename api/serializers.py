@@ -13,12 +13,18 @@ class TrafficLogSerializer(serializers.ModelSerializer):
         model = TrafficLog
         fields = [
             "id",
-            "location",
-            "congestion_level",
-            "current_speed",
-            "free_flow_speed",
+            "address",
+            "congestion_rate",
+            "flow_speed",
+            "delay_time",
+            "has_incident",
             "incident_count",
-            "status",
+            "status_code",
+            "status_color",
+            "analysis",
+            "recommendation",
+            "alternative_routes",
+            "alert_content",
             "created_at",
         ]
         read_only_fields = ["id", "created_at"]
@@ -96,19 +102,48 @@ class CheckTrafficRequestSerializer(serializers.Serializer):
 
 
 class N8NWebhookDataSerializer(serializers.Serializer):
-    """Serializer for incoming n8n webhook data."""
+    """
+    Serializer for incoming n8n webhook data.
+    Handles energyOptimizationData and wasteTrackingData.
+    """
 
-    class EnergyDataSerializer(serializers.Serializer):
-        total_consumption = serializers.FloatField()
-        avg_power = serializers.FloatField()
-        voltage_stats = serializers.JSONField()
-        anomalies_detected = serializers.BooleanField(default=False)
+    class EnergyOptimizationDataSerializer(serializers.Serializer):
+        """Nested serializer for energy data."""
 
-    class WasteDataSerializer(serializers.Serializer):
-        avg_fill_level = serializers.FloatField()
-        critical_count = serializers.IntegerField()
-        warning_count = serializers.IntegerField()
-        warning_locations = serializers.JSONField()
+        class SummarySerializer(serializers.Serializer):
+            total_consumption = serializers.FloatField()
+            anomalies = serializers.BooleanField(default=False)
+            average_power = serializers.FloatField()
 
-    energyOptimizationData = EnergyDataSerializer(required=False)
-    wasteTrackingData = WasteDataSerializer(required=False)
+        class StatisticsSerializer(serializers.Serializer):
+            class VoltageSerializer(serializers.Serializer):
+                min = serializers.FloatField()
+                max = serializers.FloatField()
+                average = serializers.FloatField()
+
+            voltage = VoltageSerializer()
+
+        summary = SummarySerializer()
+        statistics = StatisticsSerializer()
+
+    class WasteTrackingDataSerializer(serializers.Serializer):
+        """Nested serializer for waste data."""
+
+        avgFill = serializers.FloatField()
+        criticalCount = serializers.IntegerField()
+        warningCount = serializers.IntegerField()
+        warningLocations = serializers.ListField(
+            child=serializers.CharField(), allow_empty=True
+        )
+
+    energyOptimizationData = EnergyOptimizationDataSerializer(required=False)
+    wasteTrackingData = WasteTrackingDataSerializer(required=False)
+
+
+class DashboardResponseSerializer(serializers.Serializer):
+    """Serializer for dashboard response data."""
+
+    traffic = TrafficLogSerializer(allow_null=True)
+    energy = EnergyLogSerializer(allow_null=True)
+    waste = WasteLogSerializer(allow_null=True)
+    reports = serializers.DictField()

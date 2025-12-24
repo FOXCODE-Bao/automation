@@ -120,7 +120,21 @@ class SaveStatsWebhookView(APIView):
 
     Webhook receiver for n8n scheduled analysis.
     Receives energyOptimizationData and wasteTrackingData,
-    then saves to EnergyLog and WasteLog.
+    then saves to EnergyLog and WasteLog using atomic transaction.
+
+    Expected payload structure:
+    {
+        "energyOptimizationData": {
+            "summary": { "total_consumption": 150.5, "anomalies": true, "average_power": 450.2 },
+            "statistics": { "voltage": { "min": 210, "max": 230, "average": 220 } }
+        },
+        "wasteTrackingData": {
+            "avgFill": 75.5,
+            "criticalCount": 3,
+            "warningCount": 5,
+            "warningLocations": ["Point A", "Point B"]
+        }
+    }
     """
 
     permission_classes = [AllowAny]  # Add authentication for production
@@ -139,15 +153,23 @@ class SaveStatsWebhookView(APIView):
         saved_records = {}
 
         try:
+            # Use atomic transaction to ensure both logs are saved or neither is
             with transaction.atomic():
                 # Save Energy data if present
                 if "energyOptimizationData" in validated_data:
                     energy_data = validated_data["energyOptimizationData"]
+                    summary = energy_data["summary"]
+                    voltage = energy_data["statistics"]["voltage"]
+
                     energy_log = EnergyLog.objects.create(
-                        total_consumption=energy_data["total_consumption"],
-                        avg_power=energy_data["avg_power"],
-                        voltage_stats=energy_data["voltage_stats"],
-                        anomalies_detected=energy_data.get("anomalies_detected", False),
+                        total_consumption=summary["total_consumption"],
+                        avg_power=summary["average_power"],
+                        voltage_stats={
+                            "min": voltage["min"],
+                            "max": voltage["max"],
+                            "average": voltage["average"],
+                        },
+                        anomalies_detected=summary.get("anomalies", False),
                     )
                     saved_records["energy_log_id"] = energy_log.id
                     logger.info(f"Created EnergyLog: {energy_log.id}")
@@ -156,10 +178,10 @@ class SaveStatsWebhookView(APIView):
                 if "wasteTrackingData" in validated_data:
                     waste_data = validated_data["wasteTrackingData"]
                     waste_log = WasteLog.objects.create(
-                        avg_fill_level=waste_data["avg_fill_level"],
-                        critical_count=waste_data["critical_count"],
-                        warning_count=waste_data["warning_count"],
-                        warning_locations=waste_data["warning_locations"],
+                        avg_fill_level=waste_data["avgFill"],
+                        critical_count=waste_data["criticalCount"],
+                        warning_count=waste_data["warningCount"],
+                        warning_locations=waste_data["warningLocations"],
                     )
                     saved_records["waste_log_id"] = waste_log.id
                     logger.info(f"Created WasteLog: {waste_log.id}")
@@ -176,7 +198,7 @@ class SaveStatsWebhookView(APIView):
         except Exception as e:
             logger.error(f"Failed to save stats from n8n webhook: {str(e)}")
             return Response(
-                {"error": "Failed to save statistics"},
+                {"error": "Failed to save statistics", "details": str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
@@ -185,20 +207,34 @@ class DashboardView(APIView):
     """
     GET /api/dashboard/
 
-    Returns the latest record from TrafficLog, EnergyLog, and WasteLog
-    for dashboard display.
+    Returns comprehensive dashboard data including:
+    - Latest TrafficLog record
+    - Latest EnergyLog record
+    - Latest WasteLog record
+    - Count of pending CitizenReport records
+    - 5 most recent CitizenReport records
+
+    Handles empty tables gracefully by returning null/zero values.
     """
 
     permission_classes = [AllowAny]
 
     def get(self, request):
         try:
-            # Efficient queries - get only the latest record from each table
+            # Fetch latest records from each table (returns None if table is empty)
             latest_traffic = TrafficLog.objects.order_by("-created_at").first()
             latest_energy = EnergyLog.objects.order_by("-created_at").first()
             latest_waste = WasteLog.objects.order_by("-created_at").first()
 
-            # Serialize data
+            # Count pending citizen reports
+            pending_reports_count = CitizenReport.objects.filter(
+                status="pending"
+            ).count()
+
+            # Get 5 most recent citizen reports
+            recent_reports = CitizenReport.objects.order_by("-created_at")[:5]
+
+            # Build response data with null-safe handling
             dashboard_data = {
                 "traffic": (
                     TrafficLogSerializer(latest_traffic).data
@@ -211,15 +247,20 @@ class DashboardView(APIView):
                 "waste": (
                     WasteLogSerializer(latest_waste).data if latest_waste else None
                 ),
-                "timestamp": request.build_absolute_uri(),  # Current request time
+                "reports": {
+                    "pending_count": pending_reports_count,
+                    "recent": CitizenReportSerializer(recent_reports, many=True).data,
+                    "total_count": CitizenReport.objects.count(),
+                },
             }
 
+            logger.info("Dashboard data fetched successfully")
             return Response(dashboard_data, status=status.HTTP_200_OK)
 
         except Exception as e:
             logger.error(f"Dashboard view error: {str(e)}")
             return Response(
-                {"error": "Failed to fetch dashboard data"},
+                {"error": "Failed to fetch dashboard data", "details": str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
