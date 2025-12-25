@@ -2,16 +2,20 @@
 URL Configuration for Smart City API endpoints.
 """
 
-from django.urls import path
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
 from .views import (
     CheckTrafficView,
     SaveStatsWebhookView,
     DashboardView,
-    CitizenReportCreateView,
-    CitizenReportListView,
+    CitizenReportViewSet,
 )
 
 app_name = "api"
+
+# Create a router for ViewSets
+router = DefaultRouter()
+router.register(r'reports', CitizenReportViewSet, basename='report')
 
 urlpatterns = [
     # Traffic analysis endpoint
@@ -20,7 +24,6 @@ urlpatterns = [
     path("webhook/save-stats/", SaveStatsWebhookView.as_view(), name="save-stats"),
     # Dashboard data
     path("dashboard/", DashboardView.as_view(), name="dashboard"),
-    # Citizen reports
-    path("reports/", CitizenReportListView.as_view(), name="report-list"),
-    path("reports/create/", CitizenReportCreateView.as_view(), name="report-create"),
+    # Include router URLs for CitizenReport ViewSet
+    path("", include(router.urls)),
 ]

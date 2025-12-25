@@ -6,10 +6,12 @@ import os
 import logging
 import requests
 from django.db import transaction
-from rest_framework import status, generics
+from rest_framework import status, generics, viewsets, filters
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+from django_filters.rest_framework import DjangoFilterBackend
 
 from .models import TrafficLog, EnergyLog, WasteLog, CitizenReport
 from .serializers import (
@@ -265,67 +267,42 @@ class DashboardView(APIView):
             )
 
 
-class CitizenReportCreateView(generics.CreateAPIView):
+class CitizenReportViewSet(viewsets.ModelViewSet):
     """
-    POST /api/reports/
-
-    Standard CreateAPIView for citizens to submit reports.
-    Optionally triggers n8n webhook after creation.
+    ViewSet for CitizenReport model.
+    
+    Endpoints:
+    - GET /api/reports/ - List all reports with filtering support
+    - POST /api/reports/ - Create new report (supports multipart/form-data for image uploads)
+    - GET /api/reports/{id}/ - Retrieve specific report
+    - PUT/PATCH /api/reports/{id}/ - Update report (admin only in production)
+    - DELETE /api/reports/{id}/ - Delete report (admin only in production)
+    
+    Features:
+    - Multipart/Form-data support for image uploads
+    - Filtering by status and issue_type (?status=pending&issue_type=traffic)
+    - Ordering by created_at (default: latest first)
     """
 
     queryset = CitizenReport.objects.all()
     serializer_class = CitizenReportSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [AllowAny]  # Use proper permissions in production
+    
+    # Support multiple parsers for file uploads
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+    
+    # Enable filtering and ordering
+    filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
+    filterset_fields = ['status', 'issue_type']  # Allow filtering by these fields
+    ordering_fields = ['created_at', 'updated_at']
+    ordering = ['-created_at']  # Default ordering: latest first
 
     def perform_create(self, serializer):
-        # Save the report
+        """
+        Called when creating a new report.
+        This is standalone - does NOT interact with n8n.
+        """
         report = serializer.save()
-        logger.info(f"Created CitizenReport: {report.id}")
-
-        # Optional: Trigger n8n webhook for notifications
-        n8n_report_webhook = os.environ.get("N8N_REPORT_WEBHOOK")
-        if n8n_report_webhook:
-            try:
-                report_data = {
-                    "report_id": report.id,
-                    "reporter_name": report.reporter_name,
-                    "issue_type": report.issue_type,
-                    "location": report.location,
-                    "description": report.description,
-                    "status": report.status,
-                    "created_at": report.created_at.isoformat(),
-                }
-
-                # Non-blocking webhook call (fire and forget)
-                requests.post(n8n_report_webhook, json=report_data, timeout=5)
-                logger.info(f"Triggered n8n webhook for report {report.id}")
-            except Exception as e:
-                # Log but don't fail the request
-                logger.warning(f"Failed to trigger n8n webhook for report: {str(e)}")
-
-
-class CitizenReportListView(generics.ListAPIView):
-    """
-    GET /api/reports/
-
-    List all citizen reports with optional filtering.
-    """
-
-    queryset = CitizenReport.objects.all().order_by("-created_at")
-    serializer_class = CitizenReportSerializer
-    permission_classes = [AllowAny]
-
-    def get_queryset(self):
-        queryset = super().get_queryset()
-
-        # Optional filtering by status
-        status_filter = self.request.query_params.get("status", None)
-        if status_filter:
-            queryset = queryset.filter(status=status_filter)
-
-        # Optional filtering by issue_type
-        issue_type = self.request.query_params.get("issue_type", None)
-        if issue_type:
-            queryset = queryset.filter(issue_type=issue_type)
-
-        return queryset
+        logger.info(
+            f"Created CitizenReport #{report.id}: {report.issue_type} at {report.location} by {report.reporter_name}"
+        )

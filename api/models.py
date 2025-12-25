@@ -164,7 +164,7 @@ class CitizenReport(models.Model):
     status = models.CharField(
         max_length=20,
         choices=STATUS_CHOICES,
-        default="pending",
+        default="resolved",
         help_text="Current status of the report",
     )
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
