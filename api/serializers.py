@@ -3,7 +3,7 @@ Serializers for Smart City API models.
 """
 
 from rest_framework import serializers
-from .models import TrafficLog, EnergyLog, WasteLog, CitizenReport
+from .models import TrafficLog, EnergyLog, WasteLog, CitizenReport, Subscriber
 
 
 class TrafficLogSerializer(serializers.ModelSerializer):
@@ -147,3 +147,33 @@ class DashboardResponseSerializer(serializers.Serializer):
     energy = EnergyLogSerializer(allow_null=True)
     waste = WasteLogSerializer(allow_null=True)
     reports = serializers.DictField()
+
+
+class SubscriberSerializer(serializers.ModelSerializer):
+    """Serializer for newsletter subscription."""
+
+    class Meta:
+        model = Subscriber
+        fields = ["id", "email", "created_at"]
+        read_only_fields = ["id", "created_at"]
+
+    def validate_email(self, value):
+        """
+        Validate email format and check for duplicates.
+        """
+        # Convert to lowercase for consistency
+        value = value.lower().strip()
+        return value
+
+    def create(self, validated_data):
+        """
+        Handle unique constraint violation with a clear error message.
+        """
+        try:
+            return super().create(validated_data)
+        except Exception as e:
+            if "unique" in str(e).lower() or "duplicate" in str(e).lower():
+                raise serializers.ValidationError(
+                    {"email": "This email is already subscribed to our newsletter."}
+                )
+            raise

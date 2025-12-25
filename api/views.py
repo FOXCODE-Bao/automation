@@ -13,7 +13,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from django_filters.rest_framework import DjangoFilterBackend
 
-from .models import TrafficLog, EnergyLog, WasteLog, CitizenReport
+from .models import TrafficLog, EnergyLog, WasteLog, CitizenReport, Subscriber
 from .serializers import (
     TrafficLogSerializer,
     EnergyLogSerializer,
@@ -21,6 +21,7 @@ from .serializers import (
     CitizenReportSerializer,
     CheckTrafficRequestSerializer,
     N8NWebhookDataSerializer,
+    SubscriberSerializer,
 )
 
 logger = logging.getLogger(__name__)
@@ -305,4 +306,80 @@ class CitizenReportViewSet(viewsets.ModelViewSet):
         report = serializer.save()
         logger.info(
             f"Created CitizenReport #{report.id}: {report.issue_type} at {report.location} by {report.reporter_name}"
+        )
+
+
+class SubscribeView(generics.CreateAPIView):
+    """
+    POST /api/subscribe/
+
+    Newsletter subscription endpoint.
+    Citizens can subscribe by providing their email address.
+    """
+
+    queryset = Subscriber.objects.all()
+    serializer_class = SubscriberSerializer
+    permission_classes = [AllowAny]
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+
+        # Check if email already exists before validation
+        email = request.data.get("email", "").lower().strip()
+        if email and Subscriber.objects.filter(email=email).exists():
+            logger.warning(f"Duplicate subscription attempt: {email}")
+            return Response(
+                {
+                    "error": "Already subscribed",
+                    "message": "This email is already subscribed to our newsletter.",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Validate and save
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+
+        logger.info(f"New subscriber: {serializer.data['email']}")
+        return Response(
+            {
+                "success": True,
+                "message": "Successfully subscribed to newsletter!",
+                "data": serializer.data,
+            },
+            status=status.HTTP_201_CREATED,
+        )
+
+    def perform_create(self, serializer):
+        """
+        Save the subscriber.
+        """
+        serializer.save()
+
+
+class SubscriberListView(generics.ListAPIView):
+    """
+    GET /api/subscribers/
+
+    Returns list of all subscribers for n8n to send automated emails.
+    In production, protect this endpoint with authentication.
+    """
+
+    queryset = Subscriber.objects.all()
+    serializer_class = SubscriberSerializer
+    permission_classes = [AllowAny]  # TODO: Add authentication in production
+
+    def get(self, request, *args, **kwargs):
+        subscribers = self.get_queryset()
+        serializer = self.get_serializer(subscribers, many=True)
+
+        logger.info(f"n8n retrieved {subscribers.count()} subscribers for email sending")
+
+        return Response(
+            {
+                "success": True,
+                "count": subscribers.count(),
+                "subscribers": serializer.data,
+            },
+            status=status.HTTP_200_OK,
         )

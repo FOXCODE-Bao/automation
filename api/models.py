@@ -181,3 +181,29 @@ class CitizenReport(models.Model):
 
     def __str__(self):
         return f"{self.get_issue_type_display()} at {self.location} - {self.get_status_display()} (by {self.reporter_name})"
+
+
+class Subscriber(models.Model):
+    """
+    Model for newsletter subscribers.
+    Citizens can subscribe to receive future alerts from the system.
+    """
+
+    email = models.EmailField(
+        unique=True,
+        max_length=255,
+        help_text="Email address for newsletter subscription",
+    )
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "Subscriber"
+        verbose_name_plural = "Subscribers"
+        indexes = [
+            models.Index(fields=["-created_at"]),
+            models.Index(fields=["email"]),
+        ]
+
+    def __str__(self):
+        return self.email
