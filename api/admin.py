@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import TrafficLog, EnergyLog, WasteLog, CitizenReport
+from .models import TrafficLog, EnergyLog, WasteLog, CitizenReport, Subscriber
 
 
 @admin.register(TrafficLog)
@@ -88,3 +88,11 @@ class CitizenReportAdmin(admin.ModelAdmin):
     list_filter = ["issue_type", "status", "created_at"]
     search_fields = ["reporter_name", "location", "description"]
     readonly_fields = ["created_at", "updated_at"]
+
+
+@admin.register(Subscriber)
+class SubscriberAdmin(admin.ModelAdmin):
+    list_display = ["email", "created_at"]
+    list_filter = ["created_at"]
+    search_fields = ["email"]
+    readonly_fields = ["created_at"]

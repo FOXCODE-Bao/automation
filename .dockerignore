@@ -1,37 +1,27 @@
-# Python
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Python cache
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
-env/
-venv/
-ENV/
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
 
 # Django
 *.log
 db.sqlite3
 db.sqlite3-journal
-media/
-staticfiles/
-static/
 
-# Environment
+# Environment variables
 .env
 .env.local
 .env.*.local
@@ -50,10 +40,22 @@ static/
 htmlcov/
 .tox/
 
-# Docker
-.dockerignore
+# Documentation (these should be included, so commented out)
+# *.md
 
-# Git
-.git
-.gitignore
-README.md
+# Deployment files (keep these)
+# Dockerfile
+# docker-compose.yml
+
+# Media files (depends on your setup)
+# Uncomment if you don't want to copy media files into the image
+# media/
+
+# Static files (will be collected during build)
+staticfiles/
+static_root/
+
+# Misc
+*.bak
+*.tmp
+.cache/
