@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="vi">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Smart City Dashboard</title>
+		<link rel="stylesheet" href="css/style.css" />
+	</head>
+
+	<body>
+		<!-- NAV -->
+		<nav class="nav">
+			<div class="nav-left">
+				<a href="index.html" class="logo">🏙️ SmartCity</a>
+			</div>
+
+			<div class="nav-center">
+				<a href="index.html">Dashboard</a>
+				<a href="traffic.html">Traffic Check</a>
+				<a href="report.html">Report Issue</a>
+				<a href="reports.html">View Reports</a>
+			</div>
+		</nav>
+
+		<div class="container">
+			<h1>📊 Smart City Dashboard</h1>
+			<p class="subtitle">Real-time monitoring of city infrastructure</p>
+
+			<div class="dashboard-grid">
+				<div class="card" id="trafficCard">
+					<div class="card-loading">Loading traffic data...</div>
+				</div>
+				<div class="card" id="energyCard">
+					<div class="card-loading">Loading energy data...</div>
+				</div>
+				<div class="card" id="wasteCard">
+					<div class="card-loading">Loading waste data...</div>
+				</div>
+				<div class="card" id="reportsCard">
+					<div class="card-loading">Loading reports...</div>
+				</div>
+			</div>
+
+			<!-- Subscribe Section -->
+			<div class="subscribe-section">
+				<h2>📧 Subscribe to Traffic Alerts</h2>
+				<p>
+					Get real-time notifications about traffic incidents in your
+					area
+				</p>
+				<form id="subscribeForm">
+					<input
+						type="email"
+						name="email"
+						placeholder="Enter your email"
+						required
+					/>
+					<button type="submit">Subscribe</button>
+				</form>
+			</div>
+		</div>
+
+		<script type="module" src="js/dashboard.js"></script>
+		<script type="module" src="js/subcribe.js"></script>
+	</body>
+</html>

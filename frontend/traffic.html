@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="vi">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Traffic Check - SmartCity</title>
+		<link rel="stylesheet" href="css/style.css" />
+	</head>
+
+	<body>
+		<!-- NAV -->
+		<nav class="nav">
+			<div class="nav-left">
+				<a href="index.html" class="logo">🏙️ SmartCity</a>
+			</div>
+
+			<div class="nav-center">
+				<a href="index.html">Dashboard</a>
+				<a href="traffic.html">Traffic Check</a>
+				<a href="report.html">Report Issue</a>
+				<a href="reports.html">View Reports</a>
+			</div>
+		</nav>
+
+		<div class="container">
+			<h1>🚦 Traffic Analysis</h1>
+			<p class="subtitle">
+				Check real-time traffic conditions at any location
+			</p>
+
+			<div class="traffic-form">
+				<input
+					id="roadName"
+					placeholder="Enter location (e.g., Le Van Hien, Ngu Hanh Son, Da Nang)"
+					type="text"
+				/>
+				<button id="checkBtn">Check Traffic</button>
+			</div>
+
+			<div id="loading" class="loading-spinner hidden">
+				<div class="spinner"></div>
+				<p>Analyzing traffic conditions...</p>
+			</div>
+
+			<div id="resultContainer" class="hidden">
+				<div class="traffic-result-card" id="result"></div>
+			</div>
+		</div>
+
+		<script type="module" src="js/traffic.js"></script>
+	</body>
+</html>

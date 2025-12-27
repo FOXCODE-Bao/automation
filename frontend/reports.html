@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="vi">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>All Reports - SmartCity</title>
+		<link rel="stylesheet" href="css/style.css" />
+	</head>
+
+	<body>
+		<!-- NAV -->
+		<nav class="nav">
+			<div class="nav-left">
+				<a href="index.html" class="logo">🏙️ SmartCity</a>
+			</div>
+
+			<div class="nav-center">
+				<a href="index.html">Dashboard</a>
+				<a href="traffic.html">Traffic Check</a>
+				<a href="report.html">Report Issue</a>
+				<a href="reports.html">View Reports</a>
+			</div>
+		</nav>
+
+		<div class="container">
+			<h1>📋 All Reports</h1>
+			<p class="subtitle">
+				View and analyze all submitted citizen reports
+			</p>
+
+			<!-- Analysis Summary Cards -->
+			<div class="reports-analysis" id="reportsAnalysis">
+				<div class="card-loading">Loading analysis...</div>
+			</div>
+
+			<!-- Filters -->
+			<div class="reports-filters">
+				<select id="statusFilter" class="filter-select">
+					<option value="all">All Status</option>
+					<option value="pending">Pending</option>
+					<option value="in_progress">In Progress</option>
+					<option value="resolved">Resolved</option>
+				</select>
+
+				<select id="typeFilter" class="filter-select">
+					<option value="all">All Types</option>
+					<option value="traffic">Traffic</option>
+					<option value="infrastructure">Infrastructure</option>
+					<option value="waste">Waste</option>
+					<option value="other">Other</option>
+				</select>
+
+				<input
+					type="text"
+					id="searchInput"
+					class="filter-input"
+					placeholder="Search by location or description..."
+				/>
+			</div>
+
+			<!-- Reports List -->
+			<div id="reportsList" class="reports-list">
+				<div class="card-loading">Loading reports...</div>
+			</div>
+		</div>
+
+		<script type="module" src="js/reports-view.js"></script>
+	</body>
+</html>

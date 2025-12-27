@@ -1,0 +1,77 @@
+version: '3.8'
+
+services:
+  # 1. Database
+  db:
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      POSTGRES_DB: smart_city_db
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app-network
+
+  # 2. Backend (Django)
+  backend:
+    build: ./backend
+    restart: always
+    command: gunicorn --bind 0.0.0.0:8000 --workers 3 core.wsgi:application
+    volumes:
+      # Map folder media ra ngoài máy chủ để không mất ảnh khi restart
+      - ./backend/media:/app/media
+      # Map folder static ra ngoài để Nginx đọc được
+      - ./backend/staticfiles:/app/staticfiles
+    env_file:
+      - ./backend/.env
+    depends_on:
+      - db
+    networks:
+      - app-network
+
+  # 3. Frontend (HTML/JS)
+  frontend:
+    build: ./frontend
+    restart: always
+    networks:
+      - app-network
+
+  # 4. n8n Automation
+  n8n:
+    image: docker.n8n.io/n8nio/n8n
+    restart: always
+    environment:
+      - WEBHOOK_URL=http://n8n.daogiabao.id.vn/
+      - GENERIC_TIMEZONE=Asia/Ho_Chi_Minh
+    volumes:
+      - n8n_data:/home/node/.n8n
+    networks:
+      - app-network
+
+  # 5. Nginx (Cổng chính)
+  nginx:
+    image: nginx:alpine
+    restart: always
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+      # --- QUAN TRỌNG: Cho phép Nginx đọc ảnh upload và CSS Admin ---
+      - ./backend/media:/usr/share/nginx/html/media
+      - ./backend/staticfiles:/usr/share/nginx/html/static
+    depends_on:
+      - backend
+      - frontend
+      - n8n
+    networks:
+      - app-network
+
+volumes:
+  postgres_data:
+  n8n_data:
+
+networks:
+  app-network:
+    driver: bridge
